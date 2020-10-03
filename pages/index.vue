@@ -1,9 +1,17 @@
 <template>
-  <div class="container"></div>
+  <div class="container">
+    <VideoCall />
+  </div>
 </template>
 
 <script>
-export default {}
+import VideoCall from '~/components/communication/VideoCall'
+
+export default {
+  components: {
+    VideoCall,
+  },
+}
 </script>
 
 <style lang="scss" scoped></style>
