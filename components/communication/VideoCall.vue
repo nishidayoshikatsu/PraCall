@@ -85,7 +85,137 @@
   </div>
 </template>
 
-<script></script>
+<script>
+import Peer from 'skyway-js'
+
+export default {
+  data() {
+    return {
+      peer: null,
+      selectedAudio: '',
+      selectedVideo: '',
+      audios: [],
+      videos: [],
+      localStream: null,
+      theirStreams: [],
+      peerId: '',
+      roomName: '',
+      room: null,
+    }
+  },
+  mounted() {
+    // オーディオ・ビデオデバイスの準備
+    this.prepareAudioVideoDevice()
+    // ローカルカメラに接続
+    this.connectLocalCamera()
+    // Peerオブジェクトの作成
+    this.peer = new Peer({ key: process.env.API_KEY, debug: 3 })
+    // 接続成功・失敗・切断時のイベント設定
+    this.peer.on('open', () => {
+      console.log(`peer event open: peer.id=${this.peer.id}`)
+      this.peerId = this.peer.id
+    })
+    this.peer.on('error', (err) => {
+      console.error(`peer event error:`, err)
+    })
+    this.peer.on('disconnected', () => {
+      console.log(`peer event disconnected`)
+    })
+  },
+  methods: {
+    // オーディオ・ビデオデバイスを準備
+    prepareAudioVideoDevice() {
+      navigator.mediaDevices.enumerateDevices().then((deviceInfos) => {
+        const audios = [{ text: '指定なし', value: '' }]
+        const videos = [{ text: '指定なし', value: '' }]
+        for (let i = 0; i !== deviceInfos.length; ++i) {
+          const deviceInfo = deviceInfos[i]
+          if (deviceInfo.kind === 'audioinput') {
+            audios.push({
+              text: deviceInfo.label || `Microphone ${this.audios.length + 1}`,
+              value: deviceInfo.deviceId,
+            })
+          } else if (deviceInfo.kind === 'videoinput') {
+            videos.push({
+              text: deviceInfo.label || `Camera  ${this.videos.length - 1}`,
+              value: deviceInfo.deviceId,
+            })
+          }
+        }
+        this.audios = audios
+        this.videos = videos
+      })
+    },
+    // オーディオ・ビデオの変更
+    changeAudioVideo() {
+      this.$nextTick(() => {
+        this.connectLocalCamera()
+      })
+    },
+    // ローカルカメラに接続
+    connectLocalCamera() {
+      const constraints = {
+        audio:
+          this.selectedAudio !== ''
+            ? { deviceId: { exact: this.selectedAudio } }
+            : true,
+        video:
+          this.selectedVideo !== ''
+            ? { deviceId: { exact: this.selectedVideo } }
+            : true,
+      }
+      navigator.mediaDevices
+        .getUserMedia(constraints)
+        .then((stream) => {
+          this.prepareAudioVideoDevice()
+          this.localStream = stream
+          this.$nextTick(() => {
+            this.$refs.myVideo.srcObject = stream
+            if (this.room) {
+              this.room.replaceStream(stream)
+            }
+          })
+        })
+        .catch((err) => {
+          console.error('mediaDevice.getUserMedia() error:', err)
+        })
+    },
+    // 発信
+    makeRoom() {
+      if (this.roomName === '') {
+        return
+      }
+      const room = this.peer.joinRoom(`sfu_video_${this.roomName}`, {
+        mode: 'sfu',
+        stream: this.localStream,
+      })
+      this.connectRoom(room)
+    },
+    // 接続
+    connectRoom(room) {
+      this.endRoom()
+      this.room = room
+      room.on('stream', (stream) => {
+        this.theirStreams.push(stream)
+        this.$nextTick(() => {
+          this.$refs[`theirVideo${stream.id}`][0].srcObject = stream
+          this.$refs[`theirVideo${stream.id}`][0].play()
+        })
+      })
+      room.on('removeStream', (stream) => {
+        console.log(stream)
+      })
+    },
+    // 切断
+    endRoom() {
+      if (this.room) {
+        this.room.close()
+        this.room = null
+      }
+    },
+  },
+}
+</script>
 
 <style lang="scss" scoped>
 .video {
