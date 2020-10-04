@@ -51,7 +51,7 @@
         </v-card-actions>
       </v-form>
     </v-card>
-    <v-layout row wrap>
+    <v-layout row wrap class="video-layout">
       <template v-for="theirStream in theirStreams">
         <v-flex
           v-if="theirStream && theirStream.active"
@@ -60,18 +60,23 @@
           sm12
           md6
         >
-          <v-card class="mx-2 my-2">
+          <v-card class="mx-2 my-2 video-card">
             <video
               :ref="`theirVideo${theirStream.id}`"
               class="video"
               autoplay
               playsinline
             />
+            <div class="info">
+              <div>
+                <h4>Templature: 24℃</h4>
+              </div>
+            </div>
           </v-card>
         </v-flex>
       </template>
       <v-flex v-if="localStream" xs12 sm12 md6>
-        <v-card class="mx-2 my-2">
+        <v-card class="mx-2 my-2 video-card">
           <video
             ref="myVideo"
             class="video"
@@ -79,6 +84,11 @@
             autoplay
             playsinline
           />
+          <div class="info">
+            <div>
+              <h4>Templature: 24℃</h4>
+            </div>
+          </div>
         </v-card>
       </v-flex>
     </v-layout>
@@ -218,8 +228,22 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-.video {
-  width: 100%;
-  height: 100%;
+.video-layout {
+  margin: 30px;
+}
+.video-card {
+  width: 35vw;
+  height: 70vh;
+  margin: 0 30px;
+  .video {
+    width: 100%;
+    height: 35vh;
+  }
+  .info {
+    margin: 20px 50px;
+    div {
+      margin: 15px;
+    }
+  }
 }
 </style>
